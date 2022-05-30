@@ -1,6 +1,6 @@
 import { AbstractWidgetProps, StagePanelLocation, StagePanelSection, UiItemsProvider } from "@itwin/appui-abstract";
 import { BrowserAuthorizationClient } from "@itwin/browser-authorization";
-import { ColorDef, FeatureAppearance } from "@itwin/core-common";
+import { ColorDef, FeatureAppearance, FeatureOverrideType } from "@itwin/core-common";
 import { EmphasizeElements, IModelApp, IModelConnection } from "@itwin/core-frontend";
 import { Blockquote, Button, Input, Textarea, Text } from "@itwin/itwinui-react";
 import { KeySet } from "@itwin/presentation-common";
@@ -9,10 +9,16 @@ import { AST, Parser } from "node-sql-parser";
 
 const _executeQuery = async (imodel: IModelConnection, query: string) => {
   const rows = [];
-  for await (const row of imodel.query(query))
-    rows.push(row);
+  try {
+    for await (const row of imodel.query(query))
+      rows.push(row);
 
-  return rows;
+    return rows;
+  }
+  catch(e : any) {
+    console.log(e.message as Error)
+    return rows;
+  }
 };
 
 
@@ -61,18 +67,28 @@ const SQLWidget = () => {
         const iModelId = vp.iModel
         if (authClient && iModelId) {
           const para = document.getElementById("resultsOutput")
-          if (para)
+          let results : any[] = [];
+          if (para) {
             para.innerHTML = "Awaiting Results";
-          const results = await _executeQuery(vp.iModel, sql)
-          if (para)
+            results = await _executeQuery(vp.iModel, sql)
             para.innerHTML = results.length + " results displayed"
+          }
           const emph = EmphasizeElements.getOrCreate(vp);            
           emph.clearEmphasizedElements(vp);
           emph.clearOverriddenElements(vp);            
           const ecResult = results.map(x => x[0]);
-          const allElements = ecResult;
-          // const allElements = await getElementIdHiliteSet(ecResult, vp.iModel);
-          emph.emphasizeElements(allElements,vp, FeatureAppearance.fromRgb(ColorDef.from(127,0,0)), false);
+          // const allElements = ecResult;
+          const allElements = await getElementIdHiliteSet(ecResult, vp.iModel);
+//          emph.overrideElements(allElements, vp, ColorDef.green, FeatureOverrideType.ColorOnly, false);
+          for (const elementKey in allElements) {
+            emph.overrideElements(elementKey, vp, ColorDef.green, FeatureOverrideType.ColorOnly, false);
+          }
+          emph.emphasizeElements(allElements, vp, undefined, false)
+          vp.zoomToElements(allElements);
+          vp.iModel.selectionSet.emptyAll();
+          for (const es of allElements.values()) {
+            vp.iModel.selectionSet.add(es);
+          }
           vp.zoomToElements(allElements);
 
         }

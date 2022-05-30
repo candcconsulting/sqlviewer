@@ -1,0 +1,1 @@
+"select * from ifcdynamic.ifcspace where ifcname like '3R01'"
