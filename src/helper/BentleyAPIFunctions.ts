@@ -6,18 +6,21 @@ import { BrowserAuthorizationClient } from "@itwin/browser-authorization";
 export class BentleyAPIFunctions{
 
   public static async getImodelsMinimalFromProject(authClient: BrowserAuthorizationClient, projectGuid:string){
-    const accessToken = await authClient.getAccessToken();
-    const response = await fetch(`https://api.bentley.com/imodels/?projectId=${projectGuid}`, {
-      mode: 'cors',
-      headers: {
-          'Content-Type': 'application/json',
-          'Authorization': accessToken,
-          'Prefer': 'return=minimal',
-        },
-      })
-    const data = await response;
-    const json = await data.json();
-    return json;
+    if (projectGuid && (projectGuid !== "")) {
+      const accessToken = await authClient.getAccessToken();
+      const response = await fetch(`https://api.bentley.com/imodels/?projectId=${projectGuid}`, {
+        mode: 'cors',
+        headers: {
+            'Content-Type': 'application/json',
+            'Authorization': accessToken,
+            'Prefer': 'return=minimal',
+          },
+        })
+      const data = await response;
+      const json = await data.json();
+      return json;
+    }
+    return undefined
   }
 
   public static async getImodelData(authClient: BrowserAuthorizationClient, iModelId:string){
